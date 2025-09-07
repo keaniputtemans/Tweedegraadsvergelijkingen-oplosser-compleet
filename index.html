@@ -3,54 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tweedegraadsvergelijkingen Oefenmachine</title>
+<title>Tweedegraads Oefenmachine - Interactief</title>
 <style>
 body {
   font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 20px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: #f0f0f0;
+  margin:0; padding:20px;
+  display:flex; flex-direction:column;
+  justify-content:center; align-items:center;
+  min-height:100vh; background:#f0f0f0;
 }
-.equation {
-  font-size: 2em;
-  margin-top: 20px;
-}
-.highlight {
-  display: inline-block;
-  min-width: 40px;
-  text-align: center;
-  border: 2px solid #333;
-  border-radius: 6px;
-  padding: 4px 8px;
-  margin: 0 3px;
-  background: #fff;
-  font-weight: bold;
-}
-button {
-  margin-top: 20px;
-  padding: 10px 20px;
-  font-size: 1em;
-  cursor: pointer;
-}
-.solution {
-  margin-top: 20px;
-  font-weight: bold;
-  color: darkblue;
-  text-align: left;
-  max-width: 600px;
-  white-space: pre-line;
-}
-input {
-  width: 80px;
-  padding: 4px;
-  font-size: 1em;
-  margin: 0 5px;
-}
+.equation { font-size:2em; margin-top:20px; }
+.highlight { display:inline-block; min-width:40px; text-align:center; border:2px solid #333; border-radius:6px; padding:4px 8px; margin:0 3px; background:#fff; font-weight:bold; }
+button { margin-top:20px; padding:10px 20px; font-size:1em; cursor:pointer; }
+.solution { margin-top:20px; font-weight:bold; color:darkblue; text-align:left; max-width:600px; white-space:pre-line; }
+input { width:80px; padding:4px; font-size:1em; margin:0 5px; }
+#inputs, #selectSolutions { margin-top:20px; display:none; }
 </style>
 </head>
 <body>
@@ -63,7 +30,14 @@ input {
 
 <button onclick="spin()">Genereer vergelijking</button>
 
-<div id="inputs" style="margin-top:20px; display:none;">
+<div id="selectSolutions">
+  <p>Kies hoeveel oplossingen je verwacht voor deze vergelijking:</p>
+  <button onclick="setExpected(0)">0</button>
+  <button onclick="setExpected(1)">1</button>
+  <button onclick="setExpected(2)">2</button>
+</div>
+
+<div id="inputs">
   <label>x₁: <input type="text" id="x1Input"></label>
   <label>x₂: <input type="text" id="x2Input"></label>
   <button onclick="checkAnswers()">Controleer antwoord</button>
@@ -72,13 +46,18 @@ input {
 <div class="solution" id="solution"></div>
 
 <script>
-let currentA, currentB, currentC;
-let solutions = [];
+let currentA, currentB, currentC, solutions=[], expectedSolutions=null;
 
-function spin() {
-  let a; do { a = Math.floor(Math.random() * 10); } while(a === 0);
-  let b = Math.floor(Math.random() * 10);
-  let c = Math.floor(Math.random() * 10);
+function getRandomInt(min,max){
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+function spin(){
+  // genereer a, b, c, incl. negatieve waarden
+  let a;
+  do { a = getRandomInt(-5,5); } while(a===0);
+  let b = getRandomInt(-10,10);
+  let c = getRandomInt(-10,10);
 
   currentA = a; currentB = b; currentC = c;
 
@@ -86,68 +65,65 @@ function spin() {
   document.getElementById("b").textContent = b;
   document.getElementById("c").textContent = c;
 
-  // bereken oplossingen
+  // bereken discriminant en oplossingen
   let D = b*b - 4*a*c;
-  solutions = [];
+  solutions=[];
   if(D >= 0){
-    let x1 = (-b + Math.sqrt(D))/(2*a);
-    let x2 = (-b - Math.sqrt(D))/(2*a);
-    if(D === 0){ solutions = [x1]; } else { solutions = [x1, x2]; }
+    let x1=(-b+Math.sqrt(D))/(2*a);
+    let x2=(-b-Math.sqrt(D))/(2*a);
+    solutions = D===0?[x1]:[x1,x2];
   }
 
-  document.getElementById("solution").textContent = "";
-  document.getElementById("inputs").style.display = "block";
-  document.getElementById("x1Input").value = "";
-  document.getElementById("x2Input").value = "";
+  expectedSolutions=null;
+  document.getElementById("solution").textContent="";
+  document.getElementById("inputs").style.display="none";
+  document.getElementById("x1Input").value="";
+  document.getElementById("x2Input").value="";
+  document.getElementById("selectSolutions").style.display="block";
+}
+
+function setExpected(n){
+  expectedSolutions=n;
+  document.getElementById("selectSolutions").style.display="none";
+  if(n>0){ document.getElementById("inputs").style.display="block"; }
+  else{ document.getElementById("solution").textContent = "Geen reële oplossingen.\\n\nStap voor stap kan je zien dat D<0."; }
 }
 
 function parseInput(input){
-  input = input.replace(/\s+/g,'');
+  input=input.replace(/\s+/g,'');
   if(input.includes('/')){
-    let parts = input.split('/');
+    let parts=input.split('/');
     return parseFloat(parts[0])/parseFloat(parts[1]);
-  } else {
-    return parseFloat(input);
-  }
+  } else return parseFloat(input);
 }
 
 function checkAnswers(){
-  if(solutions.length === 0){
-    alert("Geen reële oplossingen voor deze vergelijking.");
-    return;
-  }
+  if(expectedSolutions===0){ alert("Geen oplossingen te controleren."); return; }
+  if(solutions.length===0){ alert("Deze vergelijking heeft geen reële oplossingen."); return; }
 
-  let x1User = parseInput(document.getElementById("x1Input").value);
-  let x2User = parseInput(document.getElementById("x2Input").value);
+  let x1User=parseInput(document.getElementById("x1Input").value);
+  let x2User=parseInput(document.getElementById("x2Input").value);
 
-  let correct = true;
-  if(solutions.length === 1){
-    correct = Math.abs(x1User - solutions[0]) < 0.01;
-  } else {
-    correct = (Math.abs(x1User - solutions[0]) < 0.01 && Math.abs(x2User - solutions[1]) < 0.01) ||
-              (Math.abs(x1User - solutions[1]) < 0.01 && Math.abs(x2User - solutions[0]) < 0.01);
-  }
+  let correct=true;
+  if(solutions.length===1) correct = Math.abs(x1User - solutions[0]) <0.01;
+  else correct = (Math.abs(x1User - solutions[0])<0.01 && Math.abs(x2User - solutions[1])<0.01) ||
+                (Math.abs(x1User - solutions[1])<0.01 && Math.abs(x2User - solutions[0])<0.01);
 
-  let resultText = correct ? "✅ Correct!" : "❌ Niet correct.";
+  let resultText=correct?"✅ Correct!":"❌ Niet correct.";
 
-  // stap-voor-stap oplossing
-  let D = currentB*currentB - 4*currentA*currentC;
-  resultText += `\n\nStap voor stap oplossing:\n`;
-  resultText += `Stap 1: Vergelijking: ${currentA}x² + ${currentB}x + ${currentC} = 0\n`;
-  resultText += `Stap 2: Discriminant D = b² - 4ac = ${currentB}² - 4*${currentA}*${currentC} = ${D}\n`;
-  if(D < 0){
-    resultText += `Stap 3: D < 0 → geen reële oplossingen.`;
-  } else if(D === 0){
-    let x = -currentB/(2*currentA);
-    resultText += `Stap 3: D = 0 → dubbele oplossing: x = -b/(2a) = -${currentB}/(2*${currentA}) = ${x.toFixed(2)}`;
-  } else {
-    let x1 = (-currentB + Math.sqrt(D))/(2*currentA);
-    let x2 = (-currentB - Math.sqrt(D))/(2*currentA);
-    resultText += `Stap 3: D > 0 → twee oplossingen:\n x₁ = (-b + √D)/(2a) = (-${currentB} + √${D})/(2*${currentA}) = ${x1.toFixed(2)}\n x₂ = (-b - √D)/(2a) = (-${currentB} - √${D})/(2*${currentA}) = ${x2.toFixed(2)}`;
-  }
+  // stap-voor-stap
+  let D=currentB*currentB -4*currentA*currentC;
+  resultText+=`\\n\\nStap voor stap oplossing:\\n`;
+  resultText+=`Vergelijking: ${currentA}x² + ${currentB}x + ${currentC} = 0\\n`;
+  resultText+=`Discriminant: D = b² -4ac = ${currentB}² -4*${currentA}*${currentC} = ${D}\\n`;
+  if(D<0){ resultText+=`Geen reële oplossingen.`; }
+  else if(D===0){ let x=-currentB/(2*currentA); resultText+=`Één oplossing (dubbele): x = -b/(2a) = -${currentB}/(2*${currentA}) = ${x.toFixed(2)}`; }
+  else{ let x1=(-currentB+Math.sqrt(D))/(2*currentA); let x2=(-currentB-Math.sqrt(D))/(2*currentA);
+    resultText+=`Twee oplossingen:\n x₁ = (-b+√D)/(2a) = (-${currentB}+√${D})/(2*${currentA}) = ${x1.toFixed(2)}\n x₂ = (-b-√D)/(2a) = (-${currentB}-√${D})/(2*${currentA}) = ${x2.toFixed(2)}`; }
 
-  document.getElementById("solution").textContent = resultText;
+  document.getElementById("solution").textContent=resultText;
 }
 </script>
 </body>
 </html>
+
